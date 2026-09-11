@@ -1,4 +1,4 @@
-name: Build Release Image
+name: Build Development Image
 
 on:
   workflow_dispatch:
@@ -16,8 +16,8 @@ env:
   IMAGE_BASE: ghcr.io/crynasty/remnawave-subscription-merger
 
 jobs:
-  build-release:
-    name: Build and Push Release Image
+  build-dev:
+    name: Build and Push Development Image
     runs-on: ubuntu-latest
     permissions:
       contents: read
