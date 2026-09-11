@@ -81,7 +81,7 @@ See [`.env.example`](.env.example) for a configuration template.
 5. Start the merger:
 
    ```bash
-   docker compose up -d && docker compose logs -f
+   docker compose pull && docker compose up -d && docker compose logs -f
    ```
 
 6. Route the public subscription domain from remnawave-subscription-page to the merger.

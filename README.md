@@ -81,7 +81,7 @@ Limited username: L_0123456789
 5. Запустите merger:
 
    ```bash
-   docker compose up -d && docker compose logs -f
+   docker compose pull && docker compose up -d && docker compose logs -f
    ```
 
 6. В конфигурации реверс-прокси замените `remnawave-subscription-page` на merger.
