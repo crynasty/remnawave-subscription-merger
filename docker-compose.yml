@@ -1,0 +1,18 @@
+services:
+    remnawave-subscription-merger:
+        image: ghcr.io/crynasty/remnawave-subscription-merger:latest
+        container_name: remnawave-subscription-merger
+        hostname: remnawave-subscription-merger
+        restart: always
+        env_file:
+            - .env
+        ports:
+            - '127.0.0.1:3030:3030'
+        networks:
+            - remnawave-network
+
+networks:
+    remnawave-network:
+        name: remnawave-network
+        driver: bridge
+        external: true

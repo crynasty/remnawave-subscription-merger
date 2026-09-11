@@ -1,0 +1,13 @@
+proxies:
+  - name: Kazakhstan VLESS
+    type: vless
+    server: kz.example.com
+    port: 443
+    uuid: 00000000-0000-0000-0000-000000000001
+proxy-groups:
+  - name: Main
+    type: select
+    proxies:
+      - Kazakhstan VLESS
+rules:
+  - MATCH,Main

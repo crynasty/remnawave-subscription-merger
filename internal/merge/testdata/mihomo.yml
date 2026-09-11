@@ -1,0 +1,23 @@
+tun:
+  enable: true
+dns:
+  enable: true
+sniffer:
+  enable: true
+proxies:
+  - name: Germany VLESS
+    type: vless
+    server: de.example.com
+    port: 443
+    uuid: 00000000-0000-0000-0000-000000000002
+proxy-groups:
+  - name: Main
+    type: select
+    proxies:
+      - Germany VLESS
+rule-providers:
+  local:
+    type: file
+    path: ./local.yml
+rules:
+  - MATCH,Main

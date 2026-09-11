@@ -1,0 +1,56 @@
+{
+  "log": {
+    "level": "info"
+  },
+  "dns": {
+    "servers": [
+      {
+        "tag": "dns",
+        "address": "1.1.1.1"
+      }
+    ]
+  },
+  "route": {
+    "rules": [
+      {
+        "protocol": "dns",
+        "outbound": "direct"
+      }
+    ]
+  },
+  "inbounds": [
+    {
+      "type": "tun",
+      "tag": "tun-in"
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "selector",
+      "tag": "Select",
+      "outbounds": [
+        "Proxy"
+      ]
+    },
+    {
+      "type": "direct",
+      "tag": "direct"
+    },
+    {
+      "type": "block",
+      "tag": "block"
+    },
+    {
+      "type": "vless",
+      "tag": "Proxy",
+      "server": "primary.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-0000-0000-000000000001"
+    }
+  ],
+  "experimental": {
+    "cache_file": {
+      "enabled": true
+    }
+  }
+}

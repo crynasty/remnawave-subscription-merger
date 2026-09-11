@@ -1,0 +1,50 @@
+[
+  {
+    "remarks": "primary xray",
+    "dns": {
+      "servers": [
+        "1.1.1.1"
+      ]
+    },
+    "log": {
+      "loglevel": "warning"
+    },
+    "routing": {
+      "rules": []
+    },
+    "inbounds": [
+      {
+        "tag": "socks",
+        "protocol": "socks",
+        "port": 10808
+      }
+    ],
+    "outbounds": [
+      {
+        "tag": "proxy",
+        "protocol": "vless",
+        "settings": {
+          "vnext": [
+            {
+              "address": "primary.example.com",
+              "port": 443,
+              "users": [
+                {
+                  "id": "00000000-0000-0000-0000-000000000001"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "tag": "direct",
+        "protocol": "freedom"
+      },
+      {
+        "tag": "block",
+        "protocol": "blackhole"
+      }
+    ]
+  }
+]

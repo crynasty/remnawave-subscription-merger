@@ -1,0 +1,13 @@
+proxies:
+  - name: Netherlands VLESS
+    type: vless
+    server: nl.example.com
+    port: 443
+    uuid: 00000000-0000-0000-0000-000000000003
+proxy-groups:
+  - name: Main
+    type: select
+    proxies:
+      - Netherlands VLESS
+rules:
+  - MATCH,Main
