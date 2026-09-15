@@ -30,6 +30,14 @@ type Response struct {
 	} `json:"response"`
 }
 
+type SubscriptionRequestIdentity struct {
+	HWID        string
+	DeviceOS    string
+	OSVersion   string
+	DeviceModel string
+	UserAgent   string
+}
+
 func NewClient(baseURL, token string, headers map[string]string) *Client {
 	baseURL = strings.TrimRight(baseURL, "/")
 	headers["Authorization"] = "Bearer " + token
@@ -89,7 +97,7 @@ func (c *Client) FetchLimitedShortUUID(ctx context.Context, primaryUsername stri
 
 // FetchLimitedUserConfig fetches the limited user's subscription config
 // by short UUID. The response type is specified when required.
-func (c *Client) FetchLimitedUserConfig(ctx context.Context, shortUUID string, responseType detector.ResponseType) ([]byte, error) {
+func (c *Client) FetchLimitedUserConfig(ctx context.Context, shortUUID string, responseType detector.ResponseType, identity SubscriptionRequestIdentity) ([]byte, error) {
 	var reqURL string
 
 	switch responseType {
@@ -105,6 +113,7 @@ func (c *Client) FetchLimitedUserConfig(ctx context.Context, shortUUID string, r
 	}
 
 	req.Header.Set("Accept-Encoding", "identity")
+	setIdentityHeaders(req.Header, identity)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -122,4 +131,25 @@ func (c *Client) FetchLimitedUserConfig(ctx context.Context, shortUUID string, r
 	}
 
 	return limitedConf, nil
+}
+
+func setIdentityHeaders(h http.Header, identity SubscriptionRequestIdentity) {
+	if identity.HWID != "" {
+		h.Set("X-Hwid", identity.HWID)
+	}
+
+	if identity.DeviceOS != "" {
+		h.Set("X-Device-Os", identity.DeviceOS)
+	}
+
+	if identity.OSVersion != "" {
+		h.Set("X-Ver-Os", identity.OSVersion)
+	}
+	if identity.DeviceModel != "" {
+		h.Set("X-Device-Model", identity.DeviceModel)
+	}
+
+	if identity.UserAgent != "" {
+		h.Set("User-Agent", identity.UserAgent)
+	}
 }

@@ -13,9 +13,16 @@ import (
 
 	"github.com/crynasty/remnawave-subscription-merger/internal/detector"
 	"github.com/crynasty/remnawave-subscription-merger/internal/merge"
+	"github.com/crynasty/remnawave-subscription-merger/internal/remnawave"
 )
 
-func (sp *subscriptionProxy) buildMergedConfig(ctx context.Context, responseType detector.ResponseType, primaryConf []byte, contentDisposition string) ([]byte, error) {
+func (sp *subscriptionProxy) buildMergedConfig(
+	ctx context.Context,
+	responseType detector.ResponseType,
+	primaryConf []byte,
+	contentDisposition string,
+	identity remnawave.SubscriptionRequestIdentity,
+) ([]byte, error) {
 	primaryUsername, err := extractUsername(contentDisposition)
 	if err != nil {
 		return nil, err
@@ -26,7 +33,7 @@ func (sp *subscriptionProxy) buildMergedConfig(ctx context.Context, responseType
 		return nil, err
 	}
 
-	limitedConf, err := sp.client.FetchLimitedUserConfig(ctx, limitedShortUUID, responseType)
+	limitedConf, err := sp.client.FetchLimitedUserConfig(ctx, limitedShortUUID, responseType, identity)
 	if err != nil {
 		return nil, err
 	}
