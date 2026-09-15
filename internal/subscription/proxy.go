@@ -68,7 +68,6 @@ func (sp *subscriptionProxy) Rewrite(pr *httputil.ProxyRequest) {
 	pr.Out.Header.Del("If-None-Match")
 }
 
-// Modify the response before sending it to the client; always return nil so the server sends it
 func (sp *subscriptionProxy) ModifyResponse(r *http.Response) error {
 	if isAsset, _ := r.Request.Context().Value(isAssetKey{}).(bool); isAsset {
 		return nil
@@ -114,8 +113,9 @@ func (sp *subscriptionProxy) ModifyResponse(r *http.Response) error {
 
 	// Extract the primary username from [attachment; filename=<username>]
 	contentDisposition := r.Header.Get("Content-Disposition")
+	identity := extractSubscriptionRequestIdentity(r.Request.Header)
 
-	mergedConf, err := sp.buildMergedConfig(r.Request.Context(), responseType, primaryConf, contentDisposition)
+	mergedConf, err := sp.buildMergedConfig(r.Request.Context(), responseType, primaryConf, contentDisposition, identity)
 	if err != nil {
 		logger.Error("failed to build merged config; returning primary config", "error", err)
 		originalBody(primaryConf, r)
@@ -168,4 +168,16 @@ func setProxyRequestHeaders(pr *httputil.ProxyRequest) {
 		}
 	}
 	pr.Out.Header.Set("X-Forwarded-Proto", proto)
+}
+
+func extractSubscriptionRequestIdentity(
+	header http.Header,
+) remnawave.SubscriptionRequestIdentity {
+	return remnawave.SubscriptionRequestIdentity{
+		HWID:        header.Get("X-Hwid"),
+		DeviceOS:    header.Get("X-Device-Os"),
+		OSVersion:   header.Get("X-Ver-Os"),
+		DeviceModel: header.Get("X-Device-Model"),
+		UserAgent:   header.Get("User-Agent"),
+	}
 }
