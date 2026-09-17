@@ -136,14 +136,21 @@ func (sp *subscriptionProxy) ModifyResponse(r *http.Response) error {
 }
 
 func (sp *subscriptionProxy) ErrorHandler(w http.ResponseWriter, r *http.Request, err error) {
-	requestID := r.Context().Value(RequestIDKey{}).(uint64)
-
-	slog.Error("upstream request failed",
-		"request_id", requestID,
+	attrs := []any{
 		"method", r.Method,
 		"path", r.URL.Path,
 		"error", err,
-	)
+	}
+
+	if requestID, ok := r.Context().Value(RequestIDKey{}).(uint64); ok {
+		attrs = append(attrs, "request_id", requestID)
+	}
+
+	if isAsset, ok := r.Context().Value(isAssetKey{}).(bool); ok {
+		attrs = append(attrs, "is_asset", isAsset)
+	}
+
+	slog.Error("upstream request failed", attrs...)
 
 	w.WriteHeader(http.StatusBadGateway)
 }
