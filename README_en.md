@@ -101,6 +101,10 @@ See [`.env.example`](.env.example) for a configuration template.
    }
    ```
 
+7. Set `TRUST_PROXY=2` in the `remnawave-subscription-page` environment variables and
+   restart its container. The merger adds a second trusted hop between the client and
+   the subscription page.
+
 Apply the new configuration by restarting your reverse proxy.
 
 ## Alternative subscription pages
