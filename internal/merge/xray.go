@@ -26,7 +26,11 @@ func MergeXray(primary, limited []byte) ([]byte, error) {
 		merged = append(merged, raw)
 	}
 
-	for _, raw := range limitedProfiles {
+	for i, raw := range limitedProfiles {
+		raw, err = cleanJSONHostName(raw, "remarks")
+		if err != nil {
+			return nil, fmt.Errorf("clean limited profile[%d] name: %w", i, err)
+		}
 		merged = append(merged, raw)
 	}
 

@@ -45,8 +45,8 @@ configuration.
 | `REMNAWAVE_TOKEN` | Yes | Remnawave panel API token. Create one under **Panel → Settings → API Tokens** |
 | `REMNAWAVE_PANEL_URL` | Yes | Base URL of the Remnawave panel API |
 | `REMNAWAVE_HEADERS` | No | Additional panel request headers in `Key:Value;Key2:Value2` format |
-| `LIMITED_PREFIX` | Yes | Prefix used to derive limited usernames. Specify it without an underscore; the merger inserts `_` automatically |
-| `PROXY_PORT` | Yes | Port on which the merger listens. The supplied example uses `3030` |
+| `LIMITED_PREFIX` | Yes | Prefix used to derive limited usernames. Specify it without an underscore; Merger inserts `_` automatically |
+| `PROXY_PORT` | Yes | Port on which Merger listens. The supplied example uses `3030` |
 | `SUBSCRIPTION_PAGE_INTERNAL_URL` | Yes | Internal URL of the subscription page to which incoming requests are proxied |
 | `LOG_LEVEL` | No | Log detail level: `DEBUG`, `INFO`, `WARN`, or `ERROR`. The default is `INFO`; to log only errors, set it to `ERROR` |
 
@@ -54,7 +54,7 @@ See [`.env.example`](.env.example) for a configuration template.
 
 ## Installation guide
 
-1. Create a new directory for the merger:
+1. Create a new directory for Merger:
 
    ```bash
    mkdir /opt/remnawave-subscription-merger && cd /opt/remnawave-subscription-merger
@@ -78,13 +78,13 @@ See [`.env.example`](.env.example) for a configuration template.
    curl -O https://raw.githubusercontent.com/crynasty/remnawave-subscription-merger/main/docker-compose.yml
    ```
 
-5. Start the merger:
+5. Start Merger:
 
    ```bash
    docker compose pull && docker compose up -d && docker compose logs -f
    ```
 
-6. Route the public subscription domain from remnawave-subscription-page to the merger.
+6. Route the public subscription domain from remnawave-subscription-page to Merger.
 
    For example, when using Caddy:
 
@@ -102,21 +102,23 @@ See [`.env.example`](.env.example) for a configuration template.
    ```
 
 7. Set `TRUST_PROXY=2` in the `remnawave-subscription-page` environment variables and
-   restart its container. The merger adds a second trusted hop between the client and
-   the subscription page.
+   restart its container. Merger adds a second trusted hop between the
+   client and the subscription page.
 
 Apply the new configuration by restarting your reverse proxy.
 
 ## Alternative subscription pages
 
-The merger can be used with any alternative Remnawave subscription page that returns a set of HTTP
-headers identical to [subscription-page](https://github.com/remnawave/subscription-page).
+Merger can be used with any alternative Remnawave subscription page that
+returns a set of HTTP headers identical to
+[subscription-page](https://github.com/remnawave/subscription-page).
 
 ## Practical use case
 
-The merger can be used for flexible traffic limiting: since the limited user's quota is consumed
+Merger can be used for flexible traffic limiting: since the limited user's quota is consumed
 only when their hosts are used, you can set separate traffic limits for selected internal squads
 without affecting the user's primary subscription.
 
 Using the `{{TRAFFIC_USED}}` tag in the limited user's host names allows you to monitor traffic
-consumption in the client application.
+consumption in the client application. Merger automatically removes the exact substring `GiB` only 
+from limited subscription host names.

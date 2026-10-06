@@ -46,6 +46,11 @@ func MergeClashLike(primary, limited []byte) ([]byte, error) {
 	if len(proxyNames) == 0 {
 		return nil, fmt.Errorf("limited config 'proxies' is empty")
 	}
+	for i, proxyNode := range limitedProxiesNode.Content {
+		nameNode := mappingGetValue(proxyNode, "name")
+		nameNode.Value = cleanLimitedHostName(nameNode.Value)
+		proxyNames[i] = nameNode.Value
+	}
 
 	// Append proxies from the limited config to the primary config
 	primaryProxiesNode := mappingGetValue(primaryRoot, "proxies")

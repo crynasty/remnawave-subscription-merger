@@ -3,7 +3,10 @@ package merge
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"net/url"
+	"strings"
 )
 
 // MergeBase64 merges two subscription response bodies for base64 response type.
@@ -30,6 +33,13 @@ func MergeBase64(primary, limited []byte) ([]byte, error) {
 	if len(limitedPlain) == 0 {
 		return nil, fmt.Errorf("limited config: decoded base64 body is empty")
 	}
+	limitedLines := strings.Split(string(limitedPlain), "\n")
+	for i, line := range limitedLines {
+		// Keep CRLF line endings intact while cleaning the URI's display name.
+		uri := strings.TrimSuffix(line, "\r")
+		limitedLines[i] = cleanLimitedURIName(uri) + line[len(uri):]
+	}
+	limitedPlain = []byte(strings.Join(limitedLines, "\n"))
 
 	merged := make([]byte, 0, len(primaryPlain)+1+len(limitedPlain))
 	merged = append(merged, primaryPlain...)
@@ -39,6 +49,39 @@ func MergeBase64(primary, limited []byte) ([]byte, error) {
 	encoded := make([]byte, base64.StdEncoding.EncodedLen(len(merged)))
 	base64.StdEncoding.Encode(encoded, merged)
 	return encoded, nil
+}
+
+func cleanLimitedURIName(uri string) string {
+	if prefix, fragment, ok := strings.Cut(uri, "#"); ok {
+		name, err := url.PathUnescape(fragment)
+		if err != nil {
+			return uri
+		}
+		cleaned := cleanLimitedHostName(name)
+		if cleaned == name {
+			return uri
+		}
+		return prefix + "#" + (&url.URL{Fragment: cleaned}).EscapedFragment()
+	}
+	// VMess stores its display name in the "ps" field of a Base64 JSON object.
+	if !strings.HasPrefix(uri, "vmess://") {
+		return uri
+	}
+	payload := strings.TrimPrefix(uri, "vmess://")
+	encoding := base64.StdEncoding
+	raw, err := encoding.DecodeString(payload)
+	if err != nil {
+		encoding = base64.RawStdEncoding
+		raw, err = encoding.DecodeString(payload)
+	}
+	if err != nil || !json.Valid(raw) {
+		return uri
+	}
+	cleaned, err := cleanJSONHostName(raw, "ps")
+	if err != nil || bytes.Equal(cleaned, raw) {
+		return uri
+	}
+	return "vmess://" + encoding.EncodeToString(cleaned)
 }
 
 func decodeBase64Body(data []byte, label string) ([]byte, error) {

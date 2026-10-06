@@ -29,6 +29,11 @@ func MergeSingBox(primaryConfig, limitedConfig []byte) ([]byte, error) {
 	if len(limitedProxies) == 0 {
 		return nil, fmt.Errorf("limited config has no outbound proxies (with 'server' field)")
 	}
+	for _, proxy := range limitedProxies {
+		if tag, ok := proxy["tag"].(string); ok {
+			proxy["tag"] = cleanLimitedHostName(tag)
+		}
+	}
 
 	// Collect proxy tags from the outbounds
 	tags, err := extractTags(limitedProxies)
