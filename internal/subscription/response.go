@@ -38,10 +38,12 @@ func (sp *subscriptionProxy) buildMergedConfig(
 		return nil, err
 	}
 
-	slog.Debug(
+	logger, ok := ctx.Value(requestLoggerKey{}).(*slog.Logger)
+	if !ok {
+		logger = slog.Default()
+	}
+	logger.Debug(
 		"merge started",
-		"request_id", ctx.Value(RequestIDKey{}),
-		"response_type", responseType.String(),
 		"primary_bytes", len(primaryConf),
 		"limited_bytes", len(limitedConf),
 	)

@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"sync/atomic"
 
 	"github.com/crynasty/remnawave-subscription-merger/internal/detector"
 	"github.com/crynasty/remnawave-subscription-merger/internal/remnawave"
@@ -20,10 +19,8 @@ type subscriptionProxy struct {
 	upstream *url.URL
 }
 
-type RequestIDKey struct{}
+type requestLoggerKey struct{}
 type isAssetKey struct{}
-
-var requestSeq atomic.Uint64
 
 func NewSubscriptionProxy(client *remnawave.Client, upstream *url.URL) *httputil.ReverseProxy {
 	sp := subscriptionProxy{
@@ -41,20 +38,12 @@ func NewSubscriptionProxy(client *remnawave.Client, upstream *url.URL) *httputil
 func (sp *subscriptionProxy) Rewrite(pr *httputil.ProxyRequest) {
 	isAsset := detector.IsAsset(pr.In)
 	ctx := context.WithValue(pr.Out.Context(), isAssetKey{}, isAsset)
-
-	var requestID uint64
-	if !isAsset {
-		requestID = requestSeq.Add(1)
-		ctx = context.WithValue(ctx, RequestIDKey{}, requestID)
-	}
+	logger := requestLogger(pr.In)
+	ctx = context.WithValue(ctx, requestLoggerKey{}, logger)
 	pr.Out = pr.Out.WithContext(ctx)
 
 	if !isAsset {
-		slog.Debug(
-			"proxy request received",
-			"request_id", requestID,
-			"method", pr.In.Method,
-		)
+		logger.Debug("proxy request received")
 	}
 
 	pr.SetURL(sp.upstream)
@@ -73,12 +62,8 @@ func (sp *subscriptionProxy) ModifyResponse(r *http.Response) error {
 		return nil
 	}
 
-	requestID, _ := r.Request.Context().Value(RequestIDKey{}).(uint64)
 	responseType := detector.DetectClient(r.Request)
-	logger := slog.With(
-		"request_id", requestID,
-		"response_type", responseType.String(),
-	)
+	logger := requestLogger(r.Request)
 
 	if r.StatusCode != http.StatusOK {
 		logger.Debug(
@@ -137,22 +122,27 @@ func (sp *subscriptionProxy) ModifyResponse(r *http.Response) error {
 
 func (sp *subscriptionProxy) ErrorHandler(w http.ResponseWriter, r *http.Request, err error) {
 	attrs := []any{
-		"method", r.Method,
-		"path", r.URL.Path,
 		"error", err,
-	}
-
-	if requestID, ok := r.Context().Value(RequestIDKey{}).(uint64); ok {
-		attrs = append(attrs, "request_id", requestID)
 	}
 
 	if isAsset, ok := r.Context().Value(isAssetKey{}).(bool); ok {
 		attrs = append(attrs, "is_asset", isAsset)
 	}
 
-	slog.Error("upstream request failed", attrs...)
+	requestLogger(r).Error("upstream request failed", attrs...)
 
 	w.WriteHeader(http.StatusBadGateway)
+}
+
+func requestLogger(r *http.Request) *slog.Logger {
+	if logger, ok := r.Context().Value(requestLoggerKey{}).(*slog.Logger); ok {
+		return logger
+	}
+	return slog.With(
+		"method", r.Method,
+		"path", r.URL.Path,
+		"response_type", detector.DetectClient(r).String(),
+	)
 }
 
 func setProxyRequestHeaders(pr *httputil.ProxyRequest) {

@@ -14,6 +14,7 @@ import (
 )
 
 func main() {
+	configureLogging("")
 	config.InitConfig()
 	configureLogging(config.LogLevel())
 
@@ -58,6 +59,12 @@ func configureLogging(value string) {
 
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
 		Level: level,
+		ReplaceAttr: func(groups []string, attr slog.Attr) slog.Attr {
+			if len(groups) == 0 && attr.Key == slog.TimeKey {
+				return slog.Attr{}
+			}
+			return attr
+		},
 	})))
 
 	if parseError != nil {
