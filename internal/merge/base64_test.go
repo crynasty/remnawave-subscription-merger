@@ -24,7 +24,7 @@ func TestMergeBase64Bodies(t *testing.T) {
 	primaryConfig := encodeBase64("trojan://primary.example:443#primary\nvless://primary.example:443#primary-2")
 	limitedConfig := encodeBase64("vless://limited.example:443#Limited\ntrojan://limited.example:443#Limited-2")
 
-	out, err := MergeBase64(primaryConfig, limitedConfig)
+	out, err := MergeBase64(primaryConfig, limitedConfig, "")
 	if err != nil {
 		t.Fatalf("MergeBase64: %v", err)
 	}
@@ -43,7 +43,7 @@ func TestMergeBase64SupportsWhitespaceAndMissingPadding(t *testing.T) {
 	limitedEncoded := base64.StdEncoding.EncodeToString([]byte("vless://b"))
 	limitedConfig := []byte(limitedEncoded[:4] + " \r\n\t" + limitedEncoded[4:])
 
-	out, err := MergeBase64(primaryConfig, limitedConfig)
+	out, err := MergeBase64(primaryConfig, limitedConfig, "")
 	if err != nil {
 		t.Fatalf("MergeBase64: %v", err)
 	}
@@ -61,7 +61,7 @@ func TestMergeBase64Fixture(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	out, err := MergeBase64(primaryConfig, limitedConfig)
+	out, err := MergeBase64(primaryConfig, limitedConfig, "")
 	if err != nil {
 		t.Fatalf("MergeBase64: %v", err)
 	}
@@ -83,7 +83,7 @@ func TestMergeBase64Errors(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if _, err := MergeBase64(tt.primaryConfig, tt.limitedConfig); err == nil {
+			if _, err := MergeBase64(tt.primaryConfig, tt.limitedConfig, ""); err == nil {
 				t.Fatal("expected error")
 			}
 		})

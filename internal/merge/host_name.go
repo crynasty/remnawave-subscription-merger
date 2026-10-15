@@ -12,6 +12,20 @@ func cleanLimitedHostName(name string) string {
 	return strings.ReplaceAll(name, " GiB", "")
 }
 
+// jsonHostName reads a display name without changing the raw object. Missing
+// or non-string names cannot serve as insertion anchors.
+func jsonHostName(raw json.RawMessage, field string) string {
+	var object map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &object); err != nil {
+		return ""
+	}
+	var name string
+	if err := json.Unmarshal(object[field], &name); err != nil {
+		return ""
+	}
+	return name
+}
+
 // cleanJSONHostName edits only a top-level name field, preserving the raw JSON
 // representation of all other fields (including field order and large numbers).
 func cleanJSONHostName(raw json.RawMessage, field string) (json.RawMessage, error) {

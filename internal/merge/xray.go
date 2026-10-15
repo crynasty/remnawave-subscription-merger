@@ -10,7 +10,7 @@ import (
 //
 // Profile objects are carried as json.RawMessage so merge does not reorder their
 // fields or convert their numeric values.
-func MergeXray(primary, limited []byte) ([]byte, error) {
+func MergeXray(primary, limited []byte, insertAfter string) ([]byte, error) {
 	primaryProfiles, err := parseXrayRawArray(primary, "primary config")
 	if err != nil {
 		return nil, err
@@ -20,20 +20,17 @@ func MergeXray(primary, limited []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	merged := make([]json.RawMessage, 0, len(primaryProfiles)+len(limitedProfiles))
-	for _, raw := range primaryProfiles {
-
-		merged = append(merged, raw)
-	}
-
 	for i, raw := range limitedProfiles {
 		raw, err = cleanJSONHostName(raw, "remarks")
 		if err != nil {
 			return nil, fmt.Errorf("clean limited profile[%d] name: %w", i, err)
 		}
-		merged = append(merged, raw)
+		limitedProfiles[i] = raw
 	}
 
+	merged := insertAfterHost(primaryProfiles, limitedProfiles, insertAfter, func(raw json.RawMessage) string {
+		return jsonHostName(raw, "remarks")
+	})
 	return marshalRawJSONArray(merged), nil
 }
 

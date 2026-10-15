@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/crynasty/remnawave-subscription-merger/internal/config"
 	"github.com/crynasty/remnawave-subscription-merger/internal/detector"
 	"github.com/crynasty/remnawave-subscription-merger/internal/merge"
 	"github.com/crynasty/remnawave-subscription-merger/internal/remnawave"
@@ -48,7 +49,7 @@ func (sp *subscriptionProxy) buildMergedConfig(
 		"limited_bytes", len(limitedConf),
 	)
 
-	mergedConf, err := mergeConfigs(primaryConf, limitedConf, responseType)
+	mergedConf, err := mergeConfigs(primaryConf, limitedConf, responseType, config.LimitedInsertAfter())
 	if err != nil {
 		return nil, fmt.Errorf("merge configs: %w", err)
 	}
@@ -56,19 +57,19 @@ func (sp *subscriptionProxy) buildMergedConfig(
 	return mergedConf, nil
 }
 
-func mergeConfigs(primary, limited []byte, responseType detector.ResponseType) ([]byte, error) {
+func mergeConfigs(primary, limited []byte, responseType detector.ResponseType, insertAfter string) ([]byte, error) {
 	var mergedConf []byte
 	var err error
 
 	switch responseType {
 	case detector.ResponseXrayJSON:
-		mergedConf, err = merge.MergeXray(primary, limited)
+		mergedConf, err = merge.MergeXray(primary, limited, insertAfter)
 	case detector.ResponseMihomo, detector.ResponseStash, detector.ResponseClash:
-		mergedConf, err = merge.MergeClashLike(primary, limited)
+		mergedConf, err = merge.MergeClashLike(primary, limited, insertAfter)
 	case detector.ResponseSingBox:
-		mergedConf, err = merge.MergeSingBox(primary, limited)
+		mergedConf, err = merge.MergeSingBox(primary, limited, insertAfter)
 	case detector.ResponseBase64:
-		mergedConf, err = merge.MergeBase64(primary, limited)
+		mergedConf, err = merge.MergeBase64(primary, limited, insertAfter)
 	default:
 		return nil, fmt.Errorf("unsupported response type: %q", responseType)
 	}

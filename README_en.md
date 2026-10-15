@@ -13,6 +13,7 @@ metadata.
 - Support for all Remnawave client configuration formats
 - Preservation of primary subscription metadata and configuration sections unrelated to proxies
 - Fail-open behavior: merge failures fall back to the original primary configuration
+- Configurable placement of limited hosts in the merged configuration
 - Compatibility with alternative subscription pages that return the same set of HTTP headers
 
 ## Requirements
@@ -46,6 +47,7 @@ configuration.
 | `REMNAWAVE_PANEL_URL` | Yes | Base URL of the Remnawave panel API |
 | `REMNAWAVE_HEADERS` | No | Additional panel request headers in `Key:Value;Key2:Value2` format |
 | `LIMITED_PREFIX` | Yes | Prefix used to derive limited usernames. Specify it without an underscore; Merger inserts `_` automatically |
+| `LIMITED_INSERT_AFTER` | No | Display name of the primary host after which the limited hosts are inserted as a block. Uses the first exact, case-sensitive match. An empty value or missing host appends the limited hosts to the end of configuration |
 | `PROXY_PORT` | Yes | Port on which Merger listens. The supplied example uses `3030` |
 | `SUBSCRIPTION_PAGE_INTERNAL_URL` | Yes | Internal URL of the subscription page to which incoming requests are proxied |
 | `LOG_LEVEL` | No | Log detail level: `DEBUG`, `INFO`, `WARN`, or `ERROR`. The default is `INFO`; to log only errors, set it to `ERROR` |

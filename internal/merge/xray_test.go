@@ -25,7 +25,7 @@ func TestMergeXrayPreservesRawProfilesAndAddsVariableCount(t *testing.T) {
 			}
 			limitedConfig.WriteByte(']')
 
-			out, err := MergeXray(primaryConfig, limitedConfig.Bytes())
+			out, err := MergeXray(primaryConfig, limitedConfig.Bytes(), "")
 			if err != nil {
 				t.Fatalf("MergeXray: %v", err)
 			}

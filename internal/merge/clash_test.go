@@ -90,7 +90,7 @@ func TestMergeClash(t *testing.T) {
 	primaryConfig := loadFile(t, "./clash.yml")
 	limitedConfig := loadFile(t, "./mihomo.yml")
 
-	out, err := MergeClashLike(primaryConfig, limitedConfig)
+	out, err := MergeClashLike(primaryConfig, limitedConfig, "")
 	if err != nil {
 		t.Fatalf("MergeClashLike: %v", err)
 	}
@@ -109,7 +109,7 @@ func TestMergeMihomo(t *testing.T) {
 	primaryConfig := loadFile(t, "./mihomo.yml")
 	limitedConfig := loadFile(t, "./clash.yml")
 
-	out, err := MergeClashLike(primaryConfig, limitedConfig)
+	out, err := MergeClashLike(primaryConfig, limitedConfig, "")
 	if err != nil {
 		t.Fatalf("MergeClashLike: %v", err)
 	}
@@ -129,7 +129,7 @@ func TestMergeStash(t *testing.T) {
 	primaryConfig := loadFile(t, "./stash.yml")
 	limitedConfig := loadFile(t, "./mihomo.yml")
 
-	out, err := MergeClashLike(primaryConfig, limitedConfig)
+	out, err := MergeClashLike(primaryConfig, limitedConfig, "")
 	if err != nil {
 		t.Fatalf("MergeClashLike: %v", err)
 	}
@@ -150,7 +150,7 @@ func TestMergeClashLike_PreservesPrimaryKeys(t *testing.T) {
 	primaryConfig := loadFile(t, "./mihomo.yml")
 	limitedConfig := loadFile(t, "./clash.yml")
 
-	out, err := MergeClashLike(primaryConfig, limitedConfig)
+	out, err := MergeClashLike(primaryConfig, limitedConfig, "")
 	if err != nil {
 		t.Fatalf("MergeClashLike: %v", err)
 	}
@@ -192,7 +192,7 @@ rules: []
 `)
 	primaryConfig := loadFile(t, "./mihomo.yml")
 
-	out, err := MergeClashLike(primaryConfig, multiLimited)
+	out, err := MergeClashLike(primaryConfig, multiLimited, "")
 	if err != nil {
 		t.Fatalf("MergeClashLike: %v", err)
 	}
@@ -245,7 +245,7 @@ proxy-groups:
 rules: []
 `)
 
-	out, err := MergeClashLike(primaryConfig, limitedConfig)
+	out, err := MergeClashLike(primaryConfig, limitedConfig, "")
 	if err != nil {
 		t.Fatalf("MergeClashLike: %v", err)
 	}
@@ -260,7 +260,7 @@ func TestMergeClashLike_OutputValid(t *testing.T) {
 	primaryConfig := loadFile(t, "./clash.yml")
 	limitedConfig := loadFile(t, "./mihomo.yml")
 
-	out, err := MergeClashLike(primaryConfig, limitedConfig)
+	out, err := MergeClashLike(primaryConfig, limitedConfig, "")
 	if err != nil {
 		t.Fatalf("MergeClashLike: %v", err)
 	}
@@ -328,7 +328,7 @@ rules:
   - MATCH,Main
 `)
 
-	out, err := MergeClashLike(primaryConfig, limitedConfig)
+	out, err := MergeClashLike(primaryConfig, limitedConfig, "")
 	if err != nil {
 		t.Fatalf("MergeClashLike: %v", err)
 	}

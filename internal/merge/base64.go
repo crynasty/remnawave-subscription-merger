@@ -3,7 +3,6 @@ package merge
 import (
 	"bytes"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"net/url"
 	"strings"
@@ -13,7 +12,7 @@ import (
 //
 // A Remnawave Base64 subscription body is a single Base64-encoded list of
 // connection URIs separated by newlines.
-func MergeBase64(primary, limited []byte) ([]byte, error) {
+func MergeBase64(primary, limited []byte, insertAfter string) ([]byte, error) {
 	primaryPlain, err := decodeBase64Body(primary, "primary config")
 	if err != nil {
 		return nil, err
@@ -39,49 +38,43 @@ func MergeBase64(primary, limited []byte) ([]byte, error) {
 		uri := strings.TrimSuffix(line, "\r")
 		limitedLines[i] = cleanLimitedURIName(uri) + line[len(uri):]
 	}
-	limitedPlain = []byte(strings.Join(limitedLines, "\n"))
-
-	merged := make([]byte, 0, len(primaryPlain)+1+len(limitedPlain))
-	merged = append(merged, primaryPlain...)
-	merged = append(merged, '\n')
-	merged = append(merged, limitedPlain...)
+	primaryLines := strings.Split(string(primaryPlain), "\n")
+	mergedLines := insertAfterHost(primaryLines, limitedLines, insertAfter, func(line string) string {
+		return uriHostName(strings.TrimSuffix(line, "\r"))
+	})
+	merged := []byte(strings.Join(mergedLines, "\n"))
 
 	encoded := make([]byte, base64.StdEncoding.EncodedLen(len(merged)))
 	base64.StdEncoding.Encode(encoded, merged)
 	return encoded, nil
 }
 
-func cleanLimitedURIName(uri string) string {
-	if prefix, fragment, ok := strings.Cut(uri, "#"); ok {
-		name, err := url.PathUnescape(fragment)
-		if err != nil {
-			return uri
-		}
-		cleaned := cleanLimitedHostName(name)
-		if cleaned == name {
-			return uri
-		}
-		return prefix + "#" + (&url.URL{Fragment: cleaned}).EscapedFragment()
+func uriHostName(uri string) string {
+	_, fragment, ok := strings.Cut(uri, "#")
+	if !ok {
+		return ""
 	}
-	// VMess stores its display name in the "ps" field of a Base64 JSON object.
-	if !strings.HasPrefix(uri, "vmess://") {
-		return uri
-	}
-	payload := strings.TrimPrefix(uri, "vmess://")
-	encoding := base64.StdEncoding
-	raw, err := encoding.DecodeString(payload)
+	name, err := url.PathUnescape(fragment)
 	if err != nil {
-		encoding = base64.RawStdEncoding
-		raw, err = encoding.DecodeString(payload)
+		return ""
 	}
-	if err != nil || !json.Valid(raw) {
+	return name
+}
+
+func cleanLimitedURIName(uri string) string {
+	prefix, fragment, ok := strings.Cut(uri, "#")
+	if !ok {
 		return uri
 	}
-	cleaned, err := cleanJSONHostName(raw, "ps")
-	if err != nil || bytes.Equal(cleaned, raw) {
+	name, err := url.PathUnescape(fragment)
+	if err != nil {
 		return uri
 	}
-	return "vmess://" + encoding.EncodeToString(cleaned)
+	cleaned := cleanLimitedHostName(name)
+	if cleaned == name {
+		return uri
+	}
+	return prefix + "#" + (&url.URL{Fragment: cleaned}).EscapedFragment()
 }
 
 func decodeBase64Body(data []byte, label string) ([]byte, error) {

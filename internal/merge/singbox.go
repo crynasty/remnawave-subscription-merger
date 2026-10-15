@@ -6,7 +6,7 @@ import (
 )
 
 // MergeSingBox merges two subscription response bodies for sing-box response type.
-func MergeSingBox(primaryConfig, limitedConfig []byte) ([]byte, error) {
+func MergeSingBox(primaryConfig, limitedConfig []byte, insertAfter string) ([]byte, error) {
 	// Parse both configurations
 	var primary map[string]any
 	if err := json.Unmarshal(primaryConfig, &primary); err != nil {
@@ -41,7 +41,7 @@ func MergeSingBox(primaryConfig, limitedConfig []byte) ([]byte, error) {
 		return nil, fmt.Errorf("extract tags: %w", err)
 	}
 
-	// Find the first selector in the primary config and append tags to its outbounds
+	// Find the first selector in the primary config and insert limited tags.
 	primaryOutbounds, err := getOutboundsSlice(primary, "primary config")
 	if err != nil {
 		return nil, err
@@ -56,14 +56,22 @@ func MergeSingBox(primaryConfig, limitedConfig []byte) ([]byte, error) {
 	if !ok {
 		return nil, fmt.Errorf("selector outbound is not a map")
 	}
-	if err := appendToSelectorOutbounds(selectorMap, tags); err != nil {
+	primaryProxyTags := make(map[string]struct{})
+	for _, proxy := range filterSingBoxProxies(primaryOutbounds) {
+		if tag, ok := proxy["tag"].(string); ok {
+			primaryProxyTags[tag] = struct{}{}
+		}
+	}
+	if err := insertIntoSelectorOutbounds(selectorMap, tags, insertAfter, primaryProxyTags); err != nil {
 		return nil, fmt.Errorf("update selector outbounds: %w", err)
 	}
 
-	// Append proxy outbounds to the primary config array
+	// Insert proxy definitions independently of their position in the selector.
+	limitedItems := make([]any, 0, len(limitedProxies))
 	for _, o := range limitedProxies {
-		primaryOutbounds = append(primaryOutbounds, o)
+		limitedItems = append(limitedItems, o)
 	}
+	primaryOutbounds = insertAfterHost(primaryOutbounds, limitedItems, insertAfter, singBoxHostName)
 	primary["outbounds"] = primaryOutbounds
 	if err := validateSingBoxSelectorReferences(primaryOutbounds, selectorMap); err != nil {
 		return nil, fmt.Errorf("validate selector: %w", err)
@@ -136,9 +144,18 @@ func findFirstSelector(outbounds []any) int {
 	return -1
 }
 
-// appendToSelectorOutbounds appends tags to the selector's "outbounds" array.
-// Existing values are preserved, and new values are appended.
-func appendToSelectorOutbounds(selector map[string]any, tags []string) error {
+func singBoxHostName(item any) string {
+	outbound, ok := item.(map[string]any)
+	if !ok || !isProxy(outbound) {
+		return ""
+	}
+	tag, _ := outbound["tag"].(string)
+	return tag
+}
+
+// insertIntoSelectorOutbounds preserves existing references and only matches
+// insertion anchors that name real primary proxies, never service outbounds.
+func insertIntoSelectorOutbounds(selector map[string]any, tags []string, insertAfter string, primaryProxyTags map[string]struct{}) error {
 	raw, ok := selector["outbounds"]
 	if !ok {
 		// Create an empty array when the selector has no outbounds
@@ -150,11 +167,18 @@ func appendToSelectorOutbounds(selector map[string]any, tags []string) error {
 		return fmt.Errorf("selector 'outbounds' is not an array")
 	}
 
+	limited := make([]any, 0, len(tags))
 	for _, tag := range tags {
-		existing = append(existing, tag)
+		limited = append(limited, tag)
 	}
 
-	selector["outbounds"] = existing
+	selector["outbounds"] = insertAfterHost(existing, limited, insertAfter, func(item any) string {
+		tag, _ := item.(string)
+		if _, ok := primaryProxyTags[tag]; !ok {
+			return ""
+		}
+		return tag
+	})
 	return nil
 }
 

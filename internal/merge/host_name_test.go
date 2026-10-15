@@ -2,7 +2,6 @@ package merge
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"strings"
 	"testing"
@@ -14,7 +13,7 @@ func TestMergeXrayCleansOnlyLimitedRemarks(t *testing.T) {
   {"remarks" : "🇩🇪 1\u0020GiB / 20 GiB", "customNumber":9007199254740993,"nested":{"remarks":"keep GiB"},"tag":"keep GiB"},
   {"remarks":"GiB 2GiB 3 gib 4 GB","customOrder":{"z":1,"a":2}}
 ]`)
-	out, err := MergeXray(primary, limited)
+	out, err := MergeXray(primary, limited, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,7 +43,7 @@ func TestMergeSingBoxCleansLimitedTagsAndSelectorReferences(t *testing.T) {
   {"type":"trojan","tag":"GiB 2GiB 3 gib","server":"b.example"},
   {"type":"direct","tag":"direct GiB"}
 ]}`)
-	out, err := MergeSingBox(primary, limited)
+	out, err := MergeSingBox(primary, limited, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +76,7 @@ rules: [MATCH,Select GiB]
     type: vless
     server: b.example
 `)
-	out, err := MergeClashLike(primary, limited)
+	out, err := MergeClashLike(primary, limited, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,11 +91,7 @@ rules: [MATCH,Select GiB]
 }
 
 func TestMergeBase64CleansOnlyLimitedURINames(t *testing.T) {
-	vmessRaw := `{"v":"2","ps":"🇩🇪 1 GiB / 20 GiB","add":"keep GiB","customNumber":9007199254740993}`
-	vmessClean := `{"v":"2","ps":"🇩🇪 1 / 20","add":"keep GiB","customNumber":9007199254740993}`
-	vmess := "vmess://" + base64.StdEncoding.EncodeToString([]byte(vmessRaw))
-	vmessUnpadded := "vmess://" + base64.RawStdEncoding.EncodeToString([]byte(vmessRaw))
-	primary := "vless://primary.example:443#Primary%2010%20GiB\n" + vmess
+	primary := "vless://primary.example:443#Primary%2010%20GiB"
 	limited := strings.Join([]string{
 		"vless://id@limited.example:443?other=keep%20GiB#Limited%201%20GiB%20/%2020%20GiB",
 		"trojan://keep%20GiB@limited.example:443#Limited 2 GiB",
@@ -105,10 +100,8 @@ func TestMergeBase64CleansOnlyLimitedURINames(t *testing.T) {
 		"tuic://limited.example:443#GiB%202GiB%203%20gib",
 		"vless://limited.example:443?other=keep%20GiB",
 		"vless://limited.example:443#invalid%ZZ%20GiB",
-		vmess,
-		vmessUnpadded,
 	}, "\r\n")
-	out, err := MergeBase64(encodeBase64(primary), encodeBase64(limited))
+	out, err := MergeBase64(encodeBase64(primary), encodeBase64(limited), "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,8 +113,6 @@ func TestMergeBase64CleansOnlyLimitedURINames(t *testing.T) {
 		"tuic://limited.example:443#GiB%202GiB%203%20gib",
 		"vless://limited.example:443?other=keep%20GiB",
 		"vless://limited.example:443#invalid%ZZ%20GiB",
-		"vmess://" + base64.StdEncoding.EncodeToString([]byte(vmessClean)),
-		"vmess://" + base64.RawStdEncoding.EncodeToString([]byte(vmessClean)),
 	}, "\r\n")
 	if got := decodeMergedBase64(t, out); got != want {
 		t.Fatalf("URI names mismatch\nwant: %s\n got: %s", want, got)

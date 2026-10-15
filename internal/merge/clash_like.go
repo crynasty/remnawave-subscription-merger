@@ -8,7 +8,7 @@ import (
 )
 
 // MergeClashLike merges two subscription response bodies for Clash, Mihomo and Stash response types.
-func MergeClashLike(primary, limited []byte) ([]byte, error) {
+func MergeClashLike(primary, limited []byte, insertAfter string) ([]byte, error) {
 	// Parse both configurations as yaml.Node
 	var primaryNode yaml.Node
 	if err := yaml.Unmarshal(primary, &primaryNode); err != nil {
@@ -52,7 +52,7 @@ func MergeClashLike(primary, limited []byte) ([]byte, error) {
 		proxyNames[i] = nameNode.Value
 	}
 
-	// Append proxies from the limited config to the primary config
+	// Insert proxies from the limited config into the primary config.
 	primaryProxiesNode := mappingGetValue(primaryRoot, "proxies")
 	if primaryProxiesNode == nil {
 		return nil, fmt.Errorf("primary config has no 'proxies' key")
@@ -60,11 +60,17 @@ func MergeClashLike(primary, limited []byte) ([]byte, error) {
 	if primaryProxiesNode.Kind != yaml.SequenceNode {
 		return nil, fmt.Errorf("primary config 'proxies' is not a sequence")
 	}
-	for _, proxyNode := range limitedProxiesNode.Content {
-		primaryProxiesNode.Content = append(primaryProxiesNode.Content, cloneYAMLNode(proxyNode))
+	primaryProxyNames := make(map[string]struct{}, len(primaryProxiesNode.Content))
+	for _, proxyNode := range primaryProxiesNode.Content {
+		primaryProxyNames[clashHostName(proxyNode)] = struct{}{}
 	}
+	limitedItems := make([]*yaml.Node, 0, len(limitedProxiesNode.Content))
+	for _, proxyNode := range limitedProxiesNode.Content {
+		limitedItems = append(limitedItems, cloneYAMLNode(proxyNode))
+	}
+	primaryProxiesNode.Content = insertAfterHost(primaryProxiesNode.Content, limitedItems, insertAfter, clashHostName)
 
-	// Append limited proxy names to the first proxy-groups[].proxies list
+	// Insert limited proxy names into the first proxy-groups[].proxies list.
 	proxyGroupsNode := mappingGetValue(primaryRoot, "proxy-groups")
 	if proxyGroupsNode == nil {
 		return nil, fmt.Errorf("primary config has no 'proxy-groups' key")
@@ -80,7 +86,7 @@ func MergeClashLike(primary, limited []byte) ([]byte, error) {
 	if firstGroupProxies == nil {
 		return nil, fmt.Errorf("primary config proxy-groups has no 'proxies' sequence")
 	}
-	appendStringsUnique(firstGroupProxies, proxyNames)
+	insertStringsUnique(firstGroupProxies, proxyNames, insertAfter, primaryProxyNames)
 
 	// Serialize the result
 	var buf bytes.Buffer
@@ -112,26 +118,47 @@ func extractProxyNames(proxiesSeq *yaml.Node) ([]string, error) {
 	return names, nil
 }
 
-// appendStringsUnique appends strings to a sequence node without duplicating
-// values that already exist in the list.
-func appendStringsUnique(seq *yaml.Node, values []string) {
+func clashHostName(proxy *yaml.Node) string {
+	if proxy.Kind != yaml.MappingNode {
+		return ""
+	}
+	name := mappingGetValue(proxy, "name")
+	if name == nil || name.Kind != yaml.ScalarNode || name.Tag != "!!str" {
+		return ""
+	}
+	return name.Value
+}
+
+// insertStringsUnique inserts new references as a block, preserving existing
+// values and excluding duplicates. Only primary proxy names can be anchors.
+func insertStringsUnique(seq *yaml.Node, values []string, insertAfter string, primaryProxyNames map[string]struct{}) {
 	seen := make(map[string]struct{}, len(seq.Content)+len(values))
 	for _, item := range seq.Content {
 		if item.Kind == yaml.ScalarNode {
 			seen[item.Value] = struct{}{}
 		}
 	}
+	limited := make([]*yaml.Node, 0, len(values))
 	for _, v := range values {
 		if _, ok := seen[v]; ok {
 			continue
 		}
-		seq.Content = append(seq.Content, &yaml.Node{
+		limited = append(limited, &yaml.Node{
 			Kind:  yaml.ScalarNode,
 			Value: v,
 			Tag:   "!!str",
 		})
 		seen[v] = struct{}{}
 	}
+	seq.Content = insertAfterHost(seq.Content, limited, insertAfter, func(item *yaml.Node) string {
+		if item.Kind != yaml.ScalarNode || item.Tag != "!!str" {
+			return ""
+		}
+		if _, ok := primaryProxyNames[item.Value]; !ok {
+			return ""
+		}
+		return item.Value
+	})
 }
 
 // findFirstProxyGroupProxies returns the first proxy-groups[].proxies list,

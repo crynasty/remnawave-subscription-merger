@@ -46,7 +46,7 @@ func TestMergeSingBoxPreservesPrimaryAndAddsAllLimitedServers(t *testing.T) {
   ]
 }`)
 
-	out, err := MergeSingBox(primaryConfig, limitedConfig)
+	out, err := MergeSingBox(primaryConfig, limitedConfig, "")
 	if err != nil {
 		t.Fatalf("MergeSingBox: %v", err)
 	}
@@ -79,7 +79,7 @@ func TestMergeSingBoxRejectsUnknownSelectorReference(t *testing.T) {
   {"type":"direct","tag":"direct"}
 ]}`)
 	limitedConfig := []byte(`{"outbounds":[{"type":"vless","tag":"Limited","server":"a.example"}]}`)
-	if _, err := MergeSingBox(primaryConfig, limitedConfig); err == nil || !strings.Contains(err.Error(), "unknown outbound") {
+	if _, err := MergeSingBox(primaryConfig, limitedConfig, ""); err == nil || !strings.Contains(err.Error(), "unknown outbound") {
 		t.Fatalf("expected selector reference error, got %v", err)
 	}
 }
@@ -91,7 +91,7 @@ func TestMergeSingBoxRejectsRealOutboundMissingFromSelector(t *testing.T) {
   {"type":"vless","tag":"Hidden","server":"hidden.example"}
 ]}`)
 	limitedConfig := []byte(`{"outbounds":[{"type":"vless","tag":"Limited","server":"limited.example"}]}`)
-	if _, err := MergeSingBox(primaryConfig, limitedConfig); err == nil || !strings.Contains(err.Error(), "does not reference") {
+	if _, err := MergeSingBox(primaryConfig, limitedConfig, ""); err == nil || !strings.Contains(err.Error(), "does not reference") {
 		t.Fatalf("expected missing real outbound reference error, got %v", err)
 	}
 }

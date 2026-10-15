@@ -14,6 +14,7 @@ type config struct {
 	remnawaveHeaders   map[string]string
 	subpageInternalURL string
 	limitedPrefix      string
+	limitedInsertAfter string
 	proxyPort          string
 	logLevel           string
 }
@@ -38,6 +39,10 @@ func SubpageInternalURL() string {
 
 func LimitedPrefix() string {
 	return conf.limitedPrefix
+}
+
+func LimitedInsertAfter() string {
+	return conf.limitedInsertAfter
 }
 
 func ProxyPort() string {
@@ -80,6 +85,7 @@ func InitConfig() {
 	}()
 	conf.subpageInternalURL = mustEnv("SUBSCRIPTION_PAGE_INTERNAL_URL")
 	conf.limitedPrefix = mustEnv("LIMITED_PREFIX")
+	conf.limitedInsertAfter = os.Getenv("LIMITED_INSERT_AFTER")
 	conf.proxyPort = mustEnv("PROXY_PORT")
 	conf.logLevel = os.Getenv("LOG_LEVEL")
 }
